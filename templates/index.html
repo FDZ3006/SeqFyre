@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SeqFyre — Analisis Termal 16S rRNA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">Seq<span class="fy">Fyre</span></span>
+      <span class="tag" data-i18n="tagline">16S rRNA · analisis termal</span>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-lang="id" class="active">ID</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="eyebrow" data-i18n="eyebrow">Pipeline struktur data bioinformatika</p>
+    <h1 data-i18n="title">Urutkan sekuens.<br /><span class="accent">Temukan panasnya.</span></h1>
+    <p data-i18n="subtitle">
+      Unggah berkas FASTA/FASTQ gen 16S rRNA. SeqFyre menghitung GC content,
+      mengurutkannya, dan menyingkap gradien termal — bakteri termofil naik ke
+      puncak, mesofil mengendap di dasar.
+    </p>
+  </section>
+
+  <!-- Upload panel -->
+  <section class="panel">
+    <div id="dropzone" class="dropzone" tabindex="0" role="button">
+      <div class="dz-icon">🔥</div>
+      <div class="dz-main" data-i18n="dz_main">Letakkan berkas di sini atau klik untuk memilih</div>
+      <div class="dz-sub" data-i18n="dz_sub">FASTA · FASTQ · ZIP — maks 16 MB</div>
+    </div>
+    <input type="file" id="fileInput" accept=".fasta,.fa,.fna,.fastq,.fq,.zip,.txt" />
+
+    <div class="controls">
+      <div class="topn">
+        <span class="lbl" data-i18n="topn_label">Tampilkan teratas:</span>
+        <div class="seg" id="topnSeg">
+          <button data-n="3" class="active">3</button>
+          <button data-n="5">5</button>
+          <button data-n="10">10</button>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" id="demoBtn" data-i18n="demo_btn">Coba dataset demo</button>
+      <button class="btn btn-primary" id="analyzeBtn" disabled data-i18n="analyze_btn">Analisis</button>
+    </div>
+    <div class="status" id="status" aria-live="polite"></div>
+  </section>
+
+  <!-- Results -->
+  <section class="results" id="results">
+
+    <p class="sec-label" data-i18n="sec_summary">Ringkasan</p>
+    <div class="stats" id="stats"></div>
+
+    <p class="sec-label" data-i18n="sec_thermal">Kolom termal — sekuens terbaik</p>
+    <div class="thermal" id="thermal"></div>
+
+    <p class="sec-label" data-i18n="sec_table">Tabel lengkap (terurut GC)</p>
+    <div class="table-wrap"><table id="resultTable"></table></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="downloadBtn" data-i18n="download_btn">Unduh ZIP (CSV + grafik)</button>
+    </div>
+
+    <p class="sec-label" data-i18n="sec_eda">Eksplorasi data (EDA)</p>
+    <div class="plots" id="plots"></div>
+  </section>
+
+  <footer class="foot">
+    <span data-i18n="foot">SeqFyre · Mini Project Struktur Data Bioinformatika (BIF1223) · IPB University</span>
+  </footer>
+
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

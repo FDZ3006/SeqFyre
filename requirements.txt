@@ -1,0 +1,7 @@
+# Dependensi SeqFyre
+# Versi disematkan agar build di Render konsisten.
+
+Flask>=3.0            	# framework web
+biopython>=1.85         # parsing FASTA/FASTQ (parser utama)
+matplotlib>=3.10       	# visualisasi grafik EDA
+gunicorn>=23.0		# WSGI server produksi (dipakai di Render)

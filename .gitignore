@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Keluaran lokal CLI
+hasil/
+*.zip
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Jangan abaikan dataset & berkas konfigurasi penting
+!data/*.fasta
