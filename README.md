@@ -1,226 +1,380 @@
-<div align="center">
-
 # SeqFyre
 
-**Pipeline analisis struktur data untuk gen 16S rRNA — mengurutkan sekuens berdasarkan GC content dan menyingkap gradien termal bakteri.**
+Pipeline analisis GC content untuk sekuens nukleotida berbasis Python. Membaca berkas FASTA atau FASTQ, menghitung frekuensi nukleotida, mengurutkan sekuens berdasarkan GC content, dan menghasilkan visualisasi serta ekspor CSV.
 
-Mini Project · Struktur Data Bioinformatika (BIF1223) · IPB University
-
-[Fitur](#-fitur) · [Demo](#-cara-menjalankan) · [Arsitektur](#-arsitektur--struktur-proyek) · [Deploy](#-deploy-ke-render) · [EDA](#-eksplorasi-data-eda)
-
-</div>
+**Demo:** https://web-production-4b2df.up.railway.app
 
 ---
 
-## Ringkasan
-
-**SeqFyre** (dari *Sequence* + *Fyre*/api) adalah aplikasi analisis bioinformatika yang membaca berkas FASTA/FASTQ gen 16S rRNA, menghitung frekuensi nukleotida, mengurutkan sekuens berdasarkan **GC content**, dan memvisualisasikan hasilnya. Tersedia dalam dua antarmuka:
-
-- **CLI** (`cli.py`) — pipeline mandiri yang memenuhi seluruh persyaratan dasar tugas.
-- **Web app** (`app.py`) — antarmuka Flask yang bisa di-deploy ke Render; pengguna cukup membuka tautan, mengunggah berkas, dan mengunduh hasil tanpa instalasi apa pun.
-
-Inti dari proyek ini bukan sekadar manipulasi string: ketika sekuens diurutkan menurun berdasarkan GC content, **bakteri termofilik secara deterministik naik ke puncak** sementara mesofilik mengendap di dasar — pipeline komputasi memvalidasi fenomena adaptasi termal yang nyata di alam.
+**Mata Kuliah:** Struktur Data Bioinformatika (BIF1223)  
+**Program Studi:** Bioinformatika, IPB University  
+**Penulis:** Fajar Dhuha Zafran (G0401241009)  
+**Deadline:** 27 Juni 2026
 
 ---
 
-## Data Understanding — mengapa dataset ini
+## Daftar Isi
 
-Stabilitas struktural asam nukleat sangat dipengaruhi suhu lingkungan. Pasangan basa **Guanin–Sitosin (G–C)** terikat oleh tiga ikatan hidrogen dan memiliki gaya *base-stacking* yang kuat, sehingga jauh lebih stabil secara termodinamika dibanding pasangan **Adenin–Timin (A–T)** yang hanya memiliki dua ikatan hidrogen. Akibatnya, bakteri **termofilik** — yang hidup di sumber air panas dan ventilasi hidrotermal — berevolusi memperkaya kandungan G dan C pada gen struktural RNA-nya untuk mencegah denaturasi pada suhu ekstrem.
+- [Latar Belakang](#latar-belakang)
+- [Dataset](#dataset)
+- [Fitur](#fitur)
+- [Struktur Proyek](#struktur-proyek)
+- [Cara Menjalankan](#cara-menjalankan)
+- [Hasil Analisis](#hasil-analisis)
+- [Eksplorasi Data](#eksplorasi-data)
+- [Pengujian](#pengujian)
+- [English Documentation](#english-documentation)
 
-Gen **16S rRNA** dipilih karena merupakan biomarker filogenetik universal (~1.500 bp), cukup terkonservasi namun tetap memuat variasi yang mencerminkan tekanan seleksi suhu. Dataset menggabungkan empat termofil dan enam mesofil sehingga pengurutan GC menghasilkan **distribusi bimodal** yang khas — dua puncak terpisah, bukan satu kurva normal.
+---
 
-> Konteks biologis di atas membuat setiap angka GC menjadi bermakna: ia adalah rekam jejak adaptasi suhu yang terekam secara molekuler, bukan statistik acak.
+## Latar Belakang
 
-### Dataset
+Stabilitas struktural asam nukleat dipengaruhi oleh komposisi basa penyusunnya. Pasangan basa Guanin-Sitosin (G-C) memiliki tiga ikatan hidrogen dan gaya base-stacking yang lebih kuat dibandingkan pasangan Adenin-Timin (A-T) yang hanya memiliki dua ikatan hidrogen. Perbedaan ini menyebabkan molekul dengan kandungan GC tinggi lebih tahan terhadap suhu tinggi.
 
-Berkas: [`data/dataset_16S_rRNA_SeqFyre.fasta`](data/dataset_16S_rRNA_SeqFyre.fasta) — 10 sekuens RefSeq (`NR_`) gen 16S rRNA, diverifikasi manual di NCBI Nucleotide.
+Bakteri termofilik, yang hidup di lingkungan bersuhu ekstrem seperti sumber air panas dan ventilasi hidrotermal, memanfaatkan mekanisme ini secara evolusioner dengan memperkaya kandungan G dan C pada gen struktural RNA-nya. Sebaliknya, bakteri mesofilik yang hidup pada suhu sedang memiliki kandungan GC yang lebih rendah.
 
-| Kelompok | Organisme | Aksesi | Suhu optimal |
-|----------|-----------|--------|--------------|
-| Termofil | *Aquifex aeolicus* VF5 | NR_075056.2 | ~95 °C (hipertermofil) |
-| Termofil | *Thermus thermophilus* HB8 | NR_037066.1 | ~70–75 °C |
-| Termofil | *Thermotoga maritima* MSB8 | NR_102775.2 | ~80 °C (hipertermofil) |
-| Termofil | *Geobacillus stearothermophilus* | NR_115284.2 | ~65 °C |
-| Mesofil | *Bacillus subtilis* | NR_112116.2 | ~37 °C |
-| Mesofil | *Escherichia coli* | NR_114042.1 | ~37 °C |
-| Mesofil | *Escherichia coli* (strain U 5/41) | NR_024570.1 | ~37 °C |
-| Mesofil | *Pseudomonas aeruginosa* | NR_026078.1 | ~37 °C |
-| Mesofil | *Herbaspirillum rubrisubalbicans* | NR_112081.1 | ~30 °C |
-| Mesofil | *Staphylococcus aureus* | NR_118997.2 | ~37 °C |
+Gen 16S rRNA dipilih sebagai dataset karena merupakan biomarker filogenetik universal dengan panjang sekitar 1.500 bp, cukup terkonservasi untuk perbandingan lintas spesies namun tetap mencerminkan tekanan seleksi suhu pada komposisi nukleotidanya.
 
-> **Cara mengunduh dataset sendiri dari NCBI:** buka NCBI Nucleotide, masukkan daftar aksesi dipisahkan koma, lalu **Send to → File → Format: FASTA → Create File**. (Catatan: basis data PopSet sudah dipensiunkan sejak Januari 2025; unduhan kini lewat Nucleotide biasa.)
+Ketika pipeline ini mengurutkan sekuens berdasarkan GC content secara menurun, bakteri termofilik secara konsisten muncul di posisi teratas. Hal ini memvalidasi bahwa pipeline tidak sekadar melakukan operasi komputasi, tetapi juga mencerminkan fenomena biologis yang nyata.
+
+---
+
+## Dataset
+
+Berkas: `data/dataset_16S_rRNA_SeqFyre.fasta`
+
+10 sekuens gen 16S rRNA dari NCBI RefSeq, terdiri dari 4 bakteri termofilik dan 6 bakteri mesofilik.
+
+| Aksesi | Organisme | Kelompok | Suhu Optimal |
+|--------|-----------|----------|-------------|
+| NR_075056.2 | Aquifex aeolicus VF5 | Termofilik | ~95°C |
+| NR_037066.1 | Thermus thermophilus HB8 | Termofilik | ~70-75°C |
+| NR_102775.2 | Thermotoga maritima MSB8 | Termofilik | ~80°C |
+| NR_115284.2 | Geobacillus stearothermophilus | Termofilik | ~65°C |
+| NR_112116.2 | Bacillus subtilis | Mesofilik | ~37°C |
+| NR_114042.1 | Escherichia coli | Mesofilik | ~37°C |
+| NR_024570.1 | Escherichia coli (strain U 5/41) | Mesofilik | ~37°C |
+| NR_026078.1 | Pseudomonas aeruginosa | Mesofilik | ~37°C |
+| NR_112081.1 | Herbaspirillum rubrisubalbicans | Mesofilik | ~30°C |
+| NR_118997.2 | Staphylococcus aureus | Mesofilik | ~37°C |
 
 ---
 
 ## Fitur
 
-**Wajib (terpenuhi penuh):**
-- Membaca berkas **FASTA** atau **FASTQ**
-- Menyimpan data dalam struktur **List**
-- Menghitung frekuensi nukleotida memakai **Dictionary**
-- Mengurutkan sekuens berdasarkan **GC content**
-- Menampilkan **3 sekuens terbaik**
-- **Visualisasi grafik** berdasarkan nilai GC
-- Menulis hasil ke berkas **CSV**
+Poin wajib yang dipenuhi:
 
-**Bonus:**
-- **Web app Flask** siap deploy ke Render (gratis, tanpa instalasi bagi pengguna)
-- Dukungan unggah **FASTA, FASTQ, dan ZIP** (ZIP berisi banyak berkas otomatis digabung)
-- Tabel **Top-N konfigurabel** (3 / 5 / 10)
-- **4 grafik EDA** (histogram, bar chart, komposisi, scatter)
-- **Unduh ZIP** hasil (CSV + grafik) — dibuat *in-memory*
-- **Kode OOP** dengan kelas terpisah (`SequenceRecord`, `Parser`, `Analyzer`)
-- **Dwibahasa** — Indonesia utama, toggle Inggris di web app
-- **BioPython** sebagai parser utama (dengan fallback pure-Python)
-- **Suite pengujian** unit (`tests/`)
+- Membaca berkas FASTA atau FASTQ
+- Menyimpan data dalam struktur List
+- Menghitung frekuensi nukleotida menggunakan Dictionary
+- Mengurutkan sekuens berdasarkan GC content
+- Menampilkan 3 sekuens terbaik (dapat dikonfigurasi: 3, 5, atau 10)
+- Visualisasi grafik berdasarkan nilai GC
+- Menulis hasil ke berkas CSV
+
+Fitur tambahan:
+
+- Antarmuka web (Flask) yang dapat diakses langsung dari browser
+- Dukungan unggah berkas FASTA, FASTQ, dan ZIP
+- 4 grafik eksplorasi data (histogram, bar chart, komposisi nukleotida, scatter plot)
+- Unduhan hasil analisis dalam format ZIP berisi CSV dan grafik
+- Kode berorientasi objek dengan kelas terpisah (SequenceRecord, Parser, Analyzer)
+- Antarmuka dwibahasa (Indonesia dan Inggris)
+- Tiga pilihan tema tampilan (terang, gelap, Fyre)
 
 ---
 
-## 🏗 Arsitektur & struktur proyek
+## Struktur Proyek
 
 ```
 seqfyre/
-├── seqfyre/                  # Paket inti (OOP)
-│   ├── __init__.py
-│   ├── models.py             # SequenceRecord — satu sekuens (freq, GC content)
-│   ├── parser.py             # Parser — baca FASTA/FASTQ/ZIP (BioPython + fallback)
-│   ├── analyzer.py           # Analyzer — sort GC, statistik, CSV, 4 grafik EDA
-│   └── packager.py           # build_result_zip — kemas hasil jadi ZIP in-memory
-├── app.py                    # Web app Flask
-├── cli.py                    # Pipeline CLI (memenuhi semua poin wajib)
-├── templates/index.html      # Antarmuka web
-├── static/
-│   ├── style.css             # Tema "gradien termal"
-│   └── app.js                # Logika frontend + toggle bahasa
-├── data/                     # Dataset 16S rRNA
-├── tests/test_pipeline.py    # 13 pengujian unit
-├── assets/                   # Gambar EDA untuk dokumentasi
-├── requirements.txt
-├── render.yaml · Procfile · runtime.txt   # konfigurasi deploy
-└── README.md
+├── seqfyre/               # Paket inti (OOP)
+│   ├── models.py          # SequenceRecord - model satu sekuens
+│   ├── parser.py          # Parser - membaca FASTA/FASTQ/ZIP
+│   ├── analyzer.py        # Analyzer - pengurutan, statistik, grafik, CSV
+│   └── packager.py        # Pengemas hasil menjadi ZIP
+├── app.py                 # Aplikasi web Flask
+├── cli.py                 # Pipeline berbasis command line
+├── templates/index.html   # Antarmuka web
+├── static/                # CSS dan JavaScript
+├── data/                  # Dataset 16S rRNA
+├── tests/                 # Pengujian unit
+├── assets/                # Grafik untuk dokumentasi
+└── requirements.txt
 ```
 
-### Tanggung jawab tiap kelas
+### Penjelasan Kelas
 
-| Kelas | Peran |
-|-------|-------|
-| `SequenceRecord` | Menyimpan satu sekuens + metadata; menghitung frekuensi nukleotida (**Dictionary**), GC content, komposisi, dan klasifikasi termal. |
-| `Parser` | Mengubah berkas/teks FASTA·FASTQ·ZIP menjadi **List** `SequenceRecord`. Memakai BioPython bila tersedia, jika tidak memakai parser manual. |
-| `Analyzer` | Mengurutkan **List** berdasarkan GC, mengambil Top-N, menghitung statistik agregat, menghasilkan CSV dan 4 grafik EDA (base64/PNG). |
+| Kelas | Tanggung Jawab |
+|-------|----------------|
+| `SequenceRecord` | Menyimpan satu sekuens beserta metadata. Menghitung frekuensi nukleotida (Dictionary) dan GC content. |
+| `Parser` | Mengubah berkas FASTA, FASTQ, atau ZIP menjadi List berisi objek SequenceRecord. Menggunakan BioPython bila tersedia, fallback ke parser manual bila tidak. |
+| `Analyzer` | Mengurutkan List berdasarkan GC content, mengambil Top-N, menghitung statistik agregat, menghasilkan CSV dan grafik EDA. |
 
-### Struktur data & kompleksitas
+### Struktur Data yang Digunakan
 
-- **Dictionary** (`{'A':.., 'T':.., 'G':.., 'C':.., 'N':..}`) untuk frekuensi nukleotida — akses/penambahan rata-rata **O(1)** per basa, total **O(n)** untuk satu sekuens.
-- **List** untuk menampung seluruh objek `SequenceRecord` — pengurutan memakai Timsort bawaan Python, **O(M log M)** dengan *M* = jumlah sekuens.
-- Top-N diperoleh lewat *array slicing* `sorted[:n]`.
+- **Dictionary** untuk menghitung frekuensi nukleotida per sekuens. Akses rata-rata O(1) per basa, total O(n) untuk satu sekuens.
+- **List** untuk menyimpan seluruh objek SequenceRecord. Pengurutan menggunakan Timsort bawaan Python dengan kompleksitas O(M log M), M adalah jumlah sekuens.
 
 ---
 
-## Cara menjalankan
+## Cara Menjalankan
 
-### 1. Lokal — siapkan lingkungan
+### Prasyarat
+
+- Python 3.12 atau lebih baru
+- pip
+
+### Instalasi
 
 ```bash
-git clone <URL-REPO-ANDA>
+git clone https://github.com/FDZ3006/seqfyre.git
 cd seqfyre
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Jalankan CLI (memenuhi semua poin wajib)
+### Menjalankan Web App
+
+```bash
+python app.py
+```
+
+Buka `http://127.0.0.1:5000` di browser, lalu unggah berkas FASTA/FASTQ atau klik "Coba dataset demo".
+
+Atau akses versi yang sudah di-deploy di: https://web-production-4b2df.up.railway.app
+
+### Menjalankan CLI
 
 ```bash
 python cli.py data/dataset_16S_rRNA_SeqFyre.fasta --top 3 --outdir hasil
 ```
 
-Keluaran: `hasil/hasil_analisis.csv` dan `hasil/grafik/*.png`.
+Hasil tersimpan di folder `hasil/`: berkas CSV dan 4 grafik PNG.
 
-### 3. Jalankan web app secara lokal
+---
 
-```bash
-python app.py
-# buka http://127.0.0.1:5000
-```
+## Hasil Analisis
 
-Unggah berkas FASTA/FASTQ/ZIP atau klik **Coba dataset demo**, atur Top-N, lalu unduh ZIP hasil.
+Hasil pengurutan sekuens dataset bawaan berdasarkan GC content (menurun):
 
-### 4. Jalankan pengujian
+| Rank | Aksesi | Organisme | GC (%) | Kelompok |
+|------|--------|-----------|--------|----------|
+| 1 | NR_075056.2 | Aquifex aeolicus | 65.15 | Termofilik |
+| 2 | NR_037066.1 | Thermus thermophilus | 63.96 | Termofilik |
+| 3 | NR_102775.2 | Thermotoga maritima | 63.54 | Termofilik |
+| 4 | NR_115284.2 | Geobacillus stearothermophilus | 59.44 | Termofilik |
+| 5 | NR_112116.2 | Bacillus subtilis | 55.10 | Mesofilik |
+| 6 | NR_114042.1 | Escherichia coli | 54.92 | Mesofilik |
+| 7 | NR_024570.1 | Escherichia coli (U 5/41) | 54.73 | Mesofilik |
+| 8 | NR_026078.1 | Pseudomonas aeruginosa | 54.07 | Mesofilik |
+| 9 | NR_112081.1 | Herbaspirillum rubrisubalbicans | 53.21 | Mesofilik |
+| 10 | NR_118997.2 | Staphylococcus aureus | 51.03 | Mesofilik |
+
+Keempat bakteri termofilik menempati rank 1-4, dan keenam bakteri mesofilik menempati rank 5-10. Pipeline berhasil menstratifikasi organisme sesuai dengan suhu pertumbuhannya.
+
+---
+
+## Eksplorasi Data
+
+### Histogram distribusi GC
+
+![Histogram GC](assets/histogram_gc.png)
+
+Distribusi GC content menunjukkan pola bimodal dengan dua kelompok yang terpisah jelas: bakteri mesofilik di kisaran 51-55% dan bakteri termofilik di kisaran 59-65%.
+
+### GC content per sekuens
+
+![Bar chart GC](assets/barchart_gc.png)
+
+### Komposisi nukleotida
+
+![Komposisi](assets/composition.png)
+
+Bakteri termofilik menunjukkan kandungan G dan C yang lebih tinggi dengan kandungan A yang lebih rendah dibandingkan bakteri mesofilik.
+
+### Panjang sekuens vs GC content
+
+![Scatter](assets/scatter_len_gc.png)
+
+Titik-titik data berkumpul di sekitar 1.450-1.580 bp, mencerminkan homogenitas panjang gen 16S rRNA. Pemisahan pada sumbu GC content sesuai dengan kelompok ekologis masing-masing organisme.
+
+---
+
+## Pengujian
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
+13 pengujian unit mencakup kelas SequenceRecord, Parser, dan Analyzer.
+
 ---
 
-## Deploy ke Render
+---
 
-SeqFyre dirancang untuk Render free tier. Dua cara:
+# English Documentation
 
-**A. Blueprint (otomatis, disarankan)**
-1. Push repo ini ke GitHub.
-2. Di Render: **New → Blueprint**, pilih repo. Render membaca [`render.yaml`](render.yaml) dan menyiapkan semuanya.
+# SeqFyre
 
-**B. Manual**
-1. **New → Web Service**, hubungkan repo.
-2. **Build Command:** `pip install -r requirements.txt`
-3. **Start Command:** `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120`
-4. **Health Check Path:** `/health`
+A Python-based GC content analysis pipeline for nucleotide sequences. Reads FASTA or FASTQ files, computes nucleotide frequency, sorts sequences by GC content, and produces visualizations and CSV export.
 
-> Semua keluaran (CSV, grafik, ZIP) dibuat **in-memory**, sesuai sifat *ephemeral filesystem* Render. Grafik dikirim ke frontend sebagai PNG base64.
+**Demo:** https://web-production-4b2df.up.railway.app
 
-Setelah live, perbarui tautan demo di sini:
+---
+
+**Course:** Bioinformatics Data Structures (BIF1223)  
+**Study Program:** Bioinformatics, IPB University  
+**Author:** Fajar Dhuha Zafran (G0401241009)  
+**Deadline:** June 27, 2026
+
+---
+
+## Background
+
+The structural stability of nucleic acids is influenced by base composition. Guanine-Cytosine (G-C) base pairs have three hydrogen bonds and stronger base-stacking forces compared to Adenine-Thymine (A-T) pairs which have only two hydrogen bonds. This difference makes molecules with higher GC content more resistant to elevated temperatures.
+
+Thermophilic bacteria, which live in extreme temperature environments such as hot springs and hydrothermal vents, exploit this mechanism by enriching the G and C content in their structural RNA genes. Conversely, mesophilic bacteria living at moderate temperatures have lower GC content.
+
+The 16S rRNA gene was chosen as the dataset because it is a universal phylogenetic biomarker approximately 1,500 bp in length, conserved enough for cross-species comparison while still reflecting temperature selection pressure on its nucleotide composition.
+
+When this pipeline sorts sequences by GC content in descending order, thermophilic bacteria consistently appear at the top, validating that the pipeline reflects real biological phenomena.
+
+---
+
+## Dataset
+
+File: `data/dataset_16S_rRNA_SeqFyre.fasta`
+
+10 16S rRNA gene sequences from NCBI RefSeq, consisting of 4 thermophilic and 6 mesophilic bacteria.
+
+| Accession | Organism | Group | Optimal Temperature |
+|-----------|----------|-------|-------------------|
+| NR_075056.2 | Aquifex aeolicus VF5 | Thermophile | ~95°C |
+| NR_037066.1 | Thermus thermophilus HB8 | Thermophile | ~70-75°C |
+| NR_102775.2 | Thermotoga maritima MSB8 | Thermophile | ~80°C |
+| NR_115284.2 | Geobacillus stearothermophilus | Thermophile | ~65°C |
+| NR_112116.2 | Bacillus subtilis | Mesophile | ~37°C |
+| NR_114042.1 | Escherichia coli | Mesophile | ~37°C |
+| NR_024570.1 | Escherichia coli (strain U 5/41) | Mesophile | ~37°C |
+| NR_026078.1 | Pseudomonas aeruginosa | Mesophile | ~37°C |
+| NR_112081.1 | Herbaspirillum rubrisubalbicans | Mesophile | ~30°C |
+| NR_118997.2 | Staphylococcus aureus | Mesophile | ~37°C |
+
+---
+
+## Features
+
+Mandatory requirements fulfilled:
+
+- Read FASTA or FASTQ files
+- Store data in List structure
+- Calculate nucleotide frequency using Dictionary
+- Sort sequences by GC content
+- Display top 3 sequences (configurable: 3, 5, or 10)
+- Visualize results as charts based on GC values
+- Write results to CSV file
+
+Additional features:
+
+- Web interface (Flask) accessible directly from browser
+- Support for FASTA, FASTQ, and ZIP file uploads
+- 4 exploratory data analysis charts (histogram, bar chart, nucleotide composition, scatter plot)
+- Download analysis results as ZIP containing CSV and charts
+- Object-oriented code with separate classes (SequenceRecord, Parser, Analyzer)
+- Bilingual interface (Indonesian and English)
+- Three display themes (light, dark, Fyre)
+
+---
+
+## Project Structure
 
 ```
-Demo: https://<nama-app>.onrender.com
+seqfyre/
+├── seqfyre/               # Core package (OOP)
+│   ├── models.py          # SequenceRecord - single sequence model
+│   ├── parser.py          # Parser - reads FASTA/FASTQ/ZIP
+│   ├── analyzer.py        # Analyzer - sorting, statistics, charts, CSV
+│   └── packager.py        # Packages results into ZIP
+├── app.py                 # Flask web application
+├── cli.py                 # Command-line pipeline
+├── templates/index.html   # Web interface
+├── static/                # CSS and JavaScript
+├── data/                  # 16S rRNA dataset
+├── tests/                 # Unit tests
+├── assets/                # Charts for documentation
+└── requirements.txt
 ```
 
 ---
 
-## Eksplorasi Data (EDA)
+## How to Run
 
-Keempat grafik berikut dihasilkan otomatis dari dataset bawaan.
+### Prerequisites
 
-### 1. Histogram distribusi GC — pola bimodal
-Dua puncak terpisah: mesofil mengelompok di ~51–55%, termofil di ~59–65%. Inilah tanda tangan dataset berkonteks.
+- Python 3.12 or newer
+- pip
 
-![Histogram GC](assets/histogram_gc.png)
+### Installation
 
-### 2. GC content per sekuens
-Bar oranye (termofil) merentang melewati ambang yang tak tercapai bar biru (mesofil).
+```bash
+git clone https://github.com/FDZ3006/seqfyre.git
+cd seqfyre
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-![Bar chart GC](assets/barchart_gc.png)
+### Running the Web App
 
-### 3. Komposisi nukleotida
-Pergeseran komposisi terlihat jelas — termofil menekan A dan memperkaya G+C.
+```bash
+python app.py
+```
 
-![Komposisi nukleotida](assets/composition.png)
+Open `http://127.0.0.1:5000` in your browser, then upload a FASTA/FASTQ file or click "Coba dataset demo".
 
-### 4. Panjang vs GC content
-Titik-titik berkumpul vertikal di ~1.500 bp (homogenitas panjang 16S rRNA), tersebar pada sumbu GC sesuai kelas termal — sekaligus alat deteksi outlier/QC.
+Or access the deployed version at: https://web-production-4b2df.up.railway.app
 
-![Scatter panjang vs GC](assets/scatter_len_gc.png)
+### Running the CLI
 
----
+```bash
+python cli.py data/dataset_16S_rRNA_SeqFyre.fasta --top 3 --outdir hasil
+```
 
-## Hasil
-
-Pengurutan menurun berdasarkan GC content menempatkan tiga hipertermofil/termofil di puncak:
-
-| Rank | Aksesi | Organisme | GC (%) | Kelas |
-|------|--------|-----------|--------|-------|
-| 1 | NR_075056.2 | *Aquifex aeolicus* | 65.15 | Termofil |
-| 2 | NR_037066.1 | *Thermus thermophilus* | 63.96 | Termofil |
-| 3 | NR_102775.2 | *Thermotoga maritima* | 63.54 | Termofil |
-
-Keempat termofil (termasuk *Geobacillus*, 59.44%) menempati rank 1–4, dan keenam mesofil rank 5–10 — pipeline berhasil menstratifikasi organisme berdasarkan suhu pertumbuhannya.
+Results are saved to the `hasil/` folder: a CSV file and 4 PNG charts.
 
 ---
 
-## Teknologi
+## Analysis Results
 
-Python 3.12 · Flask · BioPython · Matplotlib · Gunicorn · HTML/CSS/JavaScript (vanilla)
+Sequences from the built-in dataset sorted by GC content (descending):
 
-## Lisensi
+| Rank | Accession | Organism | GC (%) | Group |
+|------|-----------|----------|--------|-------|
+| 1 | NR_075056.2 | Aquifex aeolicus | 65.15 | Thermophile |
+| 2 | NR_037066.1 | Thermus thermophilus | 63.96 | Thermophile |
+| 3 | NR_102775.2 | Thermotoga maritima | 63.54 | Thermophile |
+| 4 | NR_115284.2 | Geobacillus stearothermophilus | 59.44 | Thermophile |
+| 5 | NR_112116.2 | Bacillus subtilis | 55.10 | Mesophile |
+| 6 | NR_114042.1 | Escherichia coli | 54.92 | Mesophile |
+| 7 | NR_024570.1 | Escherichia coli (U 5/41) | 54.73 | Mesophile |
+| 8 | NR_026078.1 | Pseudomonas aeruginosa | 54.07 | Mesophile |
+| 9 | NR_112081.1 | Herbaspirillum rubrisubalbicans | 53.21 | Mesophile |
+| 10 | NR_118997.2 | Staphylococcus aureus | 51.03 | Mesophile |
 
-[MIT](LICENSE) © 2026 SeqFyre — dikembangkan untuk Mini Project BIF1223, IPB University.
+All four thermophilic bacteria occupy ranks 1-4, and all six mesophilic bacteria occupy ranks 5-10. The pipeline successfully stratifies organisms according to their growth temperature.
+
+---
+
+## Testing
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+13 unit tests covering the SequenceRecord, Parser, and Analyzer classes.
+
+---
+
+*SeqFyre - Mini Project Struktur Data Bioinformatika (BIF1223), IPB University*
