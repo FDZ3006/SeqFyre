@@ -1,8 +1,8 @@
 /* ============================================================
-   SeqFyre — stylesheet
+   SeqFyre - stylesheet
    Tiga tema berbagi satu set variabel; ganti lewat atribut
    data-theme pada <html>. Tema default: "light" (terang).
-   Signature: "kolom termal" — gradien GC = gradien suhu.
+   Signature: "kolom termal" - gradien GC = gradien suhu.
    ============================================================ */
 
 /* ---------- TEMA: LIGHT (default) ---------- */
@@ -16,9 +16,9 @@
   --muted:     #6b6358;
   --faint:     #9a9186;
 
-  --hot:       #d9480f;   /* ember — termofil */
+  --hot:       #d9480f;   /* ember - termofil */
   --hot-soft:  #e8590c;
-  --cool:      #0c8599;   /* teal — mesofil */
+  --cool:      #0c8599;   /* teal - mesofil */
   --amber:     #e8920c;
 
   --hot-tint:  rgba(217, 72, 15, .08);

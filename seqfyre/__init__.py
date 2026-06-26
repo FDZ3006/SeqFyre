@@ -1,11 +1,11 @@
 """
-SeqFyre — pipeline analisis struktur data bioinformatika.
+SeqFyre - pipeline analisis struktur data bioinformatika.
 
 Paket inti berorientasi objek:
-    SequenceRecord : model satu sekuens (frekuensi nukleotida, GC content).
-    Parser         : pembaca FASTA / FASTQ / ZIP.
-    Analyzer       : pengurutan GC, statistik, CSV, dan grafik EDA.
-    build_result_zip : pengemas hasil (CSV + grafik) menjadi ZIP in-memory.
+    SequenceRecord  : model satu sekuens (frekuensi nukleotida, GC content).
+    Parser          : pembaca FASTA / FASTQ / ZIP.
+    Analyzer        : pengurutan GC, statistik, CSV, dan grafik EDA.
+    build_result_zip: pengemas hasil (CSV + grafik) menjadi ZIP.
 """
 
 from .models import SequenceRecord

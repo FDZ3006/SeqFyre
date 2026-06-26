@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """
-cli.py — SeqFyre Command-Line Pipeline
-======================================
-Skrip mandiri yang memenuhi SELURUH persyaratan WAJIB mini project:
+cli.py - SeqFyre Command-Line Pipeline
 
-    [v] Membaca berkas FASTA atau FASTQ
-    [v] Menyimpan data dalam struktur List
-    [v] Menghitung frekuensi nukleotida menggunakan Dictionary
-    [v] Mengurutkan sekuens berdasarkan GC content
-    [v] Menampilkan 3 sekuens terbaik
-    [v] Visualisasi grafik berdasarkan nilai GC
-    [v] Menulis hasil ke berkas CSV
+Skrip mandiri yang memenuhi seluruh persyaratan wajib mini project:
+    - Membaca berkas FASTA atau FASTQ
+    - Menyimpan data dalam struktur List
+    - Menghitung frekuensi nukleotida menggunakan Dictionary
+    - Mengurutkan sekuens berdasarkan GC content
+    - Menampilkan 3 sekuens terbaik
+    - Visualisasi grafik berdasarkan nilai GC
+    - Menulis hasil ke berkas CSV
 
 Cara pakai:
     python cli.py data/dataset_16S_rRNA_SeqFyre.fasta
@@ -21,8 +20,6 @@ Keluaran:
     <outdir>/grafik/*.png
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import sys
@@ -30,9 +27,9 @@ import sys
 from seqfyre import Analyzer, Parser, ParserError
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(argv=None):
     p = argparse.ArgumentParser(
-        description="SeqFyre — pipeline analisis GC content (CLI)."
+        description="SeqFyre - pipeline analisis GC content (CLI)."
     )
     p.add_argument("input", help="Berkas FASTA/FASTQ/ZIP yang dianalisis.")
     p.add_argument("--top", type=int, default=3,
@@ -42,54 +39,53 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv=None):
     args = parse_args(argv)
 
-    # --- 1. BACA berkas FASTA/FASTQ -> simpan ke List ----------------- #
+    # 1. Baca berkas FASTA/FASTQ, simpan ke List
     parser = Parser()
-    print(f"[*] Mesin parsing : {parser.engine}")
+    print("[*] Mesin parsing : " + parser.engine)
     try:
-        records = parser.parse_path(args.input)  # -> List[SequenceRecord]
+        records = parser.parse_path(args.input)
     except (ParserError, FileNotFoundError) as exc:
-        print(f"[!] Gagal membaca berkas: {exc}", file=sys.stderr)
+        print("[!] Gagal membaca berkas: " + str(exc))
         return 1
-    print(f"[*] Sekuens terbaca: {len(records)} (disimpan dalam List)")
+    print("[*] Sekuens terbaca: " + str(len(records)) + " (disimpan dalam List)")
 
-    # --- 2. Frekuensi nukleotida (Dictionary) per sekuens ------------- #
-    print("\n[*] Contoh frekuensi nukleotida (Dictionary) — sekuens pertama:")
-    print(f"    {records[0].id}: {records[0].nucleotide_frequency()}")
+    # 2. Hitung frekuensi nukleotida menggunakan Dictionary
+    print("\n[*] Contoh frekuensi nukleotida (Dictionary) - sekuens pertama:")
+    print("    " + records[0].id + ": " + str(records[0].nucleotide_frequency()))
 
-    # --- 3. URUTKAN berdasarkan GC content + tampilkan Top-N ---------- #
+    # 3. Urutkan berdasarkan GC content, tampilkan Top-N
     analyzer = Analyzer(records)
     top = analyzer.top_n(args.top)
-    print(f"\n=== {len(top)} SEKUENS TERBAIK (GC tertinggi) ===")
+    print("\n=== " + str(len(top)) + " SEKUENS TERBAIK (GC tertinggi) ===")
     print(f"{'RANK':<5}{'GC%':<8}{'ACCESSION':<14}{'KELAS':<10}ORGANISME")
     for i, rec in enumerate(top, 1):
-        print(f"{i:<5}{rec.gc_content:<8.2f}{rec.id:<14}"
+        print(f"{i:<5}{rec.gc_content():<8.2f}{rec.id:<14}"
               f"{rec.classify_by_gc():<10}{rec.organism}")
 
-    # --- 4. Siapkan direktori keluaran -------------------------------- #
+    # 4. Siapkan direktori keluaran
     os.makedirs(os.path.join(args.outdir, "grafik"), exist_ok=True)
 
-    # --- 5. TULIS hasil ke CSV ---------------------------------------- #
+    # 5. Tulis hasil ke CSV
     csv_path = os.path.join(args.outdir, "hasil_analisis.csv")
     with open(csv_path, "w", encoding="utf-8-sig", newline="") as fh:
         fh.write(analyzer.to_csv_string())
-    print(f"\n[*] CSV ditulis   : {csv_path}")
+    print("\n[*] CSV ditulis   : " + csv_path)
 
-    # --- 6. VISUALISASI grafik berdasarkan GC ------------------------- #
+    # 6. Visualisasi grafik berdasarkan GC
     for filename, png in analyzer.plots_png_bytes().items():
         path = os.path.join(args.outdir, "grafik", filename)
         with open(path, "wb") as fh:
             fh.write(png)
-    print(f"[*] 4 grafik EDA  : {os.path.join(args.outdir, 'grafik')}/")
+    print("[*] 4 grafik EDA  : " + os.path.join(args.outdir, "grafik") + "/")
 
-    # --- Ringkasan ---------------------------------------------------- #
+    # Ringkasan
     s = analyzer.summary()
     print("\n=== RINGKASAN ===")
-    print(f"    Rata-rata GC       : {s['mean_gc']}%")
-    print(f"    Termofil / Mesofil : "
-          f"{s['thermophile_count']} / {s['mesophile_count']}")
+    print("    Rata-rata GC       : " + str(s["mean_gc"]) + "%")
+    print("    Termofil / Mesofil : " + str(s["thermophile_count"]) + " / " + str(s["mesophile_count"]))
     print("[v] Selesai.")
     return 0
 

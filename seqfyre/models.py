@@ -1,129 +1,92 @@
 """
 models.py
-=========
-Definisi kelas SequenceRecord: representasi satu rekaman sekuens biologis.
-
-Kelas ini bertanggung jawab penuh atas SATU sekuens — menyimpan metadata
-(accession, organisme, deskripsi) dan menghitung properti turunannya:
-frekuensi nukleotida (struktur Dictionary), GC content, dan komposisi basa.
-
-Desain OOP: satu objek = satu sekuens. Analyzer-lah yang nanti mengelola
-kumpulan objek ini dalam sebuah List.
+---------
+Definisi kelas SequenceRecord.
+Satu objek merepresentasikan satu sekuens nukleotida beserta metadata
+dan perhitungan turunannya (frekuensi nukleotida, GC content).
 """
-
-from __future__ import annotations
 
 
 class SequenceRecord:
-    """Merepresentasikan satu sekuens 16S rRNA (atau sekuens nukleotida apa pun).
-
-    Attributes:
-        id (str): Nomor aksesi / SeqID dari header FASTA (mis. 'NR_037066.1').
-        description (str): Header lengkap setelah tanda '>'.
-        organism (str): Nama organisme hasil ekstraksi dari header.
-        sequence (str): Untaian nukleotida (huruf besar, tanpa whitespace).
-    """
-
-    # Basa nukleotida standar yang dihitung. 'N' (ambigu, IUPAC) sengaja
-    # dipisah agar bisa dilaporkan namun tidak merusak akurasi GC content.
+    # Basa nukleotida standar yang dihitung.
+    # N dipisah agar tidak merusak akurasi GC content.
     BASES = ("A", "T", "G", "C")
 
-    def __init__(self, seq_id: str, description: str, sequence: str) -> None:
-        self.id: str = seq_id
-        self.description: str = description
-        # Normalisasi: huruf besar + buang karakter non-huruf (newline, spasi).
-        self.sequence: str = "".join(sequence.split()).upper()
-        self.organism: str = self._extract_organism(description)
+    def __init__(self, seq_id, description, sequence):
+        self.id = seq_id
+        self.description = description
+        # Normalisasi: huruf besar, buang whitespace
+        self.sequence = "".join(sequence.split()).upper()
+        self.organism = self._extract_organism(description)
 
-    # ------------------------------------------------------------------ #
-    # Helper privat
-    # ------------------------------------------------------------------ #
-    @staticmethod
-    def _extract_organism(description: str) -> str:
-        """Ambil nama organisme dari header FASTA.
-
-        Header NCBI berbentuk:
-            'NR_037066.1 Thermus thermophilus HB8 16S ribosomal RNA, ...'
-        Kita ambil 2 kata setelah accession sebagai 'Genus species'.
-        """
+    def _extract_organism(self, description):
+        # Ambil 2 kata setelah accession sebagai nama organisme
+        # Contoh header NCBI: 'NR_037066.1 Thermus thermophilus HB8 16S ...'
         parts = description.split()
         if len(parts) >= 3:
-            return f"{parts[1]} {parts[2]}"
+            return parts[1] + " " + parts[2]
         if len(parts) == 2:
             return parts[1]
         return "Unknown organism"
 
-    # ------------------------------------------------------------------ #
-    # Properti turunan
-    # ------------------------------------------------------------------ #
-    @property
-    def length(self) -> int:
-        """Panjang total sekuens (termasuk basa ambigu 'N')."""
+    def get_length(self):
+        # Panjang total sekuens termasuk basa ambigu N
         return len(self.sequence)
 
-    def nucleotide_frequency(self) -> dict[str, int]:
-        """Hitung frekuensi tiap nukleotida memakai struktur Dictionary.
-
-        Inilah implementasi inti persyaratan WAJIB: 'menghitung frekuensi
-        nukleotida menggunakan Dictionary'. Kompleksitas waktu O(n) dengan
-        akses hash table rata-rata O(1) per basa.
-
-        Returns:
-            dict: mis. {'A': 310, 'T': 249, 'G': 525, 'C': 462, 'N': 0}
-        """
-        freq: dict[str, int] = {base: 0 for base in self.BASES}
-        freq["N"] = 0  # penampung basa ambigu / non-standar
+    def nucleotide_frequency(self):
+        # Hitung frekuensi tiap nukleotida menggunakan Dictionary
+        # Kompleksitas O(n), akses Dictionary rata-rata O(1) per basa
+        freq = {"A": 0, "T": 0, "G": 0, "C": 0, "N": 0}
         for base in self.sequence:
             if base in freq:
                 freq[base] += 1
             else:
-                # Basa IUPAC lain (R, Y, K, M, ...) diperlakukan sebagai ambigu.
+                # Basa IUPAC lain dianggap ambigu
                 freq["N"] += 1
         return freq
 
-    @property
-    def gc_content(self) -> float:
-        """Persentase GC = (G + C) / (A + T + G + C) * 100.
-
-        Basa 'N' DIKECUALIKAN dari penyebut agar persentase GC murni
-        mencerminkan termodinamika pasangan basa, bukan noise sekuensing.
-        """
+    def gc_content(self):
+        # Persentase GC = (G + C) / (A + T + G + C) * 100
+        # Basa N dikecualikan dari penyebut
         freq = self.nucleotide_frequency()
         valid = freq["A"] + freq["T"] + freq["G"] + freq["C"]
         if valid == 0:
             return 0.0
         return (freq["G"] + freq["C"]) / valid * 100
 
-    @property
-    def at_content(self) -> float:
-        """Persentase AT (komplemen dari GC content)."""
-        gc = self.gc_content
+    def at_content(self):
+        # Persentase AT, komplemen dari GC content
+        gc = self.gc_content()
         return 100.0 - gc if gc else 0.0
 
-    def composition_percent(self) -> dict[str, float]:
-        """Persentase tiap basa relatif terhadap panjang sekuens."""
-        if self.length == 0:
-            return {b: 0.0 for b in (*self.BASES, "N")}
+    def composition_percent(self):
+        # Persentase tiap basa terhadap panjang sekuens
+        length = self.get_length()
+        if length == 0:
+            return {"A": 0.0, "T": 0.0, "G": 0.0, "C": 0.0, "N": 0.0}
         freq = self.nucleotide_frequency()
-        return {b: freq[b] / self.length * 100 for b in freq}
+        result = {}
+        for b in freq:
+            result[b] = freq[b] / length * 100
+        return result
 
-    def classify_by_gc(self, threshold: float = 57.0) -> str:
-        """Klasifikasi ekologis sederhana berdasarkan ambang GC.
+    def classify_by_gc(self, threshold=57.0):
+        # Klasifikasi ekologis berdasarkan ambang GC
+        # Termofil cenderung GC tinggi (>57%), mesofil lebih rendah
+        # Ambang 57% dipilih karena berada di celah bimodal dataset
+        if self.gc_content() >= threshold:
+            return "Termofil"
+        return "Mesofil"
 
-        Termofil cenderung GC tinggi (>57%), mesofil lebih rendah.
-        Ambang 57% dipilih karena berada di celah bimodal dataset.
-        """
-        return "Termofil" if self.gc_content >= threshold else "Mesofil"
-
-    def to_row(self, rank: int | None = None) -> dict:
-        """Ubah objek menjadi satu baris (dict) untuk tabel / CSV."""
+    def to_row(self, rank=None):
+        # Ubah objek menjadi satu baris dictionary untuk tabel dan CSV
         freq = self.nucleotide_frequency()
         row = {
             "Rank": rank if rank is not None else "",
             "Accession_ID": self.id,
             "Organism": self.organism,
-            "Length": self.length,
-            "GC_Content(%)": round(self.gc_content, 2),
+            "Length": self.get_length(),
+            "GC_Content(%)": round(self.gc_content(), 2),
             "A_Count": freq["A"],
             "T_Count": freq["T"],
             "G_Count": freq["G"],
@@ -133,14 +96,13 @@ class SequenceRecord:
         }
         return row
 
-    # ------------------------------------------------------------------ #
-    # Dunder methods (membuat objek nyaman dipakai)
-    # ------------------------------------------------------------------ #
-    def __len__(self) -> int:
-        return self.length
+    def __len__(self):
+        return self.get_length()
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return (
-            f"SequenceRecord(id={self.id!r}, organism={self.organism!r}, "
-            f"len={self.length}, gc={self.gc_content:.2f}%)"
+            "SequenceRecord(id=" + repr(self.id) +
+            ", organism=" + repr(self.organism) +
+            ", len=" + str(self.get_length()) +
+            ", gc=" + str(round(self.gc_content(), 2)) + "%)"
         )
