@@ -134,6 +134,8 @@ Buka https://web-production-4b2df.up.railway.app di browser, unggah berkas FASTA
 
 Download `SeqFyre.exe` dari [GitHub Releases](https://github.com/FDZ3006/seqfyre/releases/latest), lalu jalankan langsung dengan double click. Tidak perlu install Python. Mendukung drag-and-drop berkas FASTA/FASTQ dan ekspor hasil ke ZIP.
 
+> **Catatan:** Windows mungkin menampilkan peringatan SmartScreen saat pertama kali dijalankan. Klik **More info** lalu **Run anyway** untuk melanjutkan - ini normal untuk aplikasi yang belum memiliki sertifikat digital.
+
 ### Via Lokal
 
 Untuk menjalankan di komputer sendiri:
@@ -336,6 +338,8 @@ Open https://web-production-4b2df.up.railway.app in your browser, upload a FASTA
 ### Via Desktop App
 
 Download `SeqFyre.exe` from [GitHub Releases](https://github.com/FDZ3006/seqfyre/releases/latest) and run it with a double-click. No Python installation needed. Supports drag-and-drop FASTA/FASTQ files and ZIP export of results.
+
+> **Note:** Windows may show a SmartScreen warning on first run. Click **More info** then **Run anyway** to continue - this is normal for apps without a digital certificate.
 
 ### Via Local
 
